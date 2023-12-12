@@ -461,6 +461,7 @@ class Fluent::Site24x7Output < Fluent::Plugin::Output
   end
 
   def format(tag, time, record)
+    log.debug "Formatting record: @valid_logtype=#{@valid_logtype}, @log_upload_allowed=#{@log_upload_allowed}, @log_upload_stopped_time=#{@log_upload_stopped_time}"
     if @valid_logtype && (@log_upload_allowed || (time.to_i - @log_upload_stopped_time > S247_LOG_UPLOAD_CHECK_INTERVAL))
       if (record.size == 1)
         if record.has_key?'message'
@@ -566,6 +567,8 @@ class Fluent::Site24x7Output < Fluent::Plugin::Output
             @s247_http_client.override_headers["upload-id"] = current_chunk_id
             response = @s247_http_client.request @uri, request
             resp_headers = response.each_header.to_h
+
+            log.debug "[#{current_chunk_id}]:Received HTTP #{response.code} response from site24x7"
             
             if response.code == '200'
               if resp_headers['x-uploadid'] == nil
@@ -609,6 +612,8 @@ class Fluent::Site24x7Output < Fluent::Plugin::Output
 
           if need_retry
             retries += 1 
+	          log.debug "[#{current_chunk_id}]:Initiating retry attempt #{retries}"
+
             if (retries >= @max_retry && @max_retry > 0) || (Time.now > first_upload_time + @retry_timeout && @retry_timeout > 0)
               log.error "[#{current_chunk_id}]: Internal max retries(#{max_retry}) or retry_timeout : #{first_upload_time + @retry_timeout} reached"
               break
@@ -620,6 +625,7 @@ class Fluent::Site24x7Output < Fluent::Plugin::Output
                 sleep_interval = @maxretry_interval
             end
           else
+            log.debug "[#{current_chunk_id}]:Skipping retry attempt (not required)"
             return
           end
         end
@@ -765,6 +771,8 @@ class Fluent::Site24x7Output < Fluent::Plugin::Output
 
   def timer_task()
     while true
+      log.debug "Timer tick beginning"
+	    
       @after_time = Time.now
       if @before_time
         diff = @after_time-@before_time
@@ -777,6 +785,8 @@ class Fluent::Site24x7Output < Fluent::Plugin::Output
           end
         end
       end
+
+      log.debug "Timer tick ending"
       sleep(30)
     end
   end
