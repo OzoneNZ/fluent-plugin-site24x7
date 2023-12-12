@@ -572,6 +572,7 @@ class Fluent::Site24x7Output < Fluent::Plugin::Output
                 log.error "[#{current_chunk_id}]:upload id is empty hence retry flag enabled #{resp_headers}"
                 need_retry = true
               else
+		      	    @valid_logtype = true
 		            @log_upload_allowed = true
                 log.debug "[#{current_chunk_id}]:Successfully sent logs with size #{gzipped_parsed_lines.size} / #{@log_size} to site24x7. Upload Id : #{resp_headers['x-uploadid']}"
               end
